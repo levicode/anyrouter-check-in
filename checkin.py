@@ -21,6 +21,15 @@ load_dotenv()
 BALANCE_HASH_FILE = 'balance_hash.txt'
 
 
+def format_balance_display(quota: float, used: float) -> str:
+	"""格式化余额显示信息，提高可读性"""
+	return (
+		':money: Current balance\n'
+		f'    • Remaining: ${quota}\n'
+		f'    • Used: ${used}'
+	)
+
+
 def load_accounts():
 	"""从环境变量加载多账号配置"""
 	accounts_str = os.getenv('ANYROUTER_ACCOUNTS')
@@ -182,7 +191,7 @@ def get_user_info(client, headers):
 					'success': True,
 					'quota': quota,
 					'used_quota': used_quota,
-					'display': f':money: Current balance: ${quota}, Used: ${used_quota}'
+					'display': format_balance_display(quota, used_quota)
 				}
 		return {'success': False, 'error': f'Failed to get user info: HTTP {response.status_code}'}
 	except Exception as e:
@@ -369,7 +378,10 @@ async def main():
 				account_name = get_account_display_name(account, i)
 				# 只添加成功获取余额的账号，且避免重复添加
 				account_result = f'[BALANCE] {account_name}'
-				account_result += f'\n:money: Current balance: ${current_balances[account_key]["quota"]}, Used: ${current_balances[account_key]["used"]}'
+				account_result += '\n' + format_balance_display(
+					current_balances[account_key]['quota'],
+					current_balances[account_key]['used'],
+				)
 				# 检查是否已经在通知内容中（避免重复）
 				if not any(account_name in item for item in notification_content):
 					notification_content.append(account_result)
@@ -398,7 +410,7 @@ async def main():
 		notify_content = '\n\n'.join([time_info, '\n'.join(notification_content), '\n'.join(summary)])
 
 		print(notify_content)
-		notify.push_message('AnyRouter Check-in Alert', notify_content, msg_type='text')
+		notify.push_message('AnyRouter Check-in Alert', notify_content)
 		print('[NOTIFY] Notification sent due to failures or balance changes')
 	else:
 		print('[INFO] All accounts successful and no balance changes detected, notification skipped')

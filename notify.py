@@ -18,7 +18,7 @@ class NotificationKit:
 		self.feishu_webhook = os.getenv('FEISHU_WEBHOOK')
 		self.weixin_webhook = os.getenv('WEIXIN_WEBHOOK')
 
-	def send_email(self, title: str, content: str, msg_type: Literal['text', 'html'] = 'text'):
+	def send_email(self, title: str, content: str, msg_type: Literal['text', 'plain', 'html'] = 'plain'):
 		if not self.email_user or not self.email_pass or not self.email_to:
 			raise ValueError('Email configuration not set')
 
@@ -27,7 +27,8 @@ class NotificationKit:
 		msg['To'] = self.email_to
 		msg['Subject'] = title
 
-		body = MIMEText(content, msg_type, 'utf-8')
+		subtype = 'plain' if msg_type in ('text', 'plain') else msg_type
+		body = MIMEText(content, subtype, 'utf-8')
 		msg.attach(body)
 
 		smtp_server = f'smtp.{self.email_user.split("@")[1]}'
@@ -81,7 +82,7 @@ class NotificationKit:
 		with httpx.Client(timeout=30.0) as client:
 			client.post(self.weixin_webhook, json=data)
 
-	def push_message(self, title: str, content: str, msg_type: Literal['text', 'html'] = 'text'):
+	def push_message(self, title: str, content: str, msg_type: Literal['text', 'plain', 'html'] = 'plain'):
 		notifications = [
 			('Email', lambda: self.send_email(title, content, msg_type)),
 			('PushPlus', lambda: self.send_pushplus(title, content)),
